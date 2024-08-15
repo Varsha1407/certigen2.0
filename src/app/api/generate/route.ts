@@ -1,44 +1,69 @@
-import { read, utils } from 'xlsx';
+import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
+import { read, utils } from 'xlsx';
 import { createCanvas, loadImage } from 'canvas';
-import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest, res: NextResponse) {
-    const zip = new JSZip();
-    const { name, coordinates, roleId, discordid, githubid } = await req.json();
-    const formData = req.body;
-    const position = JSON.parse(formData.get('position'));
+interface Coordinates {
+    x: number;
+    y: number;
+}
 
-    // Load the certificate template image
-    const imageBuffer = formData.get('image').buffer;
-    const img = await loadImage(imageBuffer);
+export async function POST(req: NextRequest) {
+    try {
+        const formData = await req.formData();
+        const templateFile = formData.get('template') as Blob;
+        const excelFile = formData.get('excel') as Blob;
+        const fontSize = parseInt(formData.get('fontSize') as string);
+        const coordinates: Coordinates = JSON.parse(formData.get('coordinates') as string);
 
-    // Parse the Excel file
-    const excelBuffer = formData.get('excel').buffer;
-    const workbook = read(excelBuffer);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const names = utils.sheet_to_json(sheet).map((row) => row['Name']);
+        if (!templateFile || !excelFile || !fontSize || !coordinates) {
+            return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+        }
 
-    // Generate certificates
-    const canvas = createCanvas(img.width, img.height);
-    const ctx = canvas.getContext('2d');
+        const zip = new JSZip();
 
-    for (const name of names) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      ctx.font = '30px Arial';
-      ctx.fillText(name, position.x, position.y);
+        // Convert the template Blob to a buffer
+        const templateArrayBuffer = await templateFile.arrayBuffer();
+        const templateBuffer = Buffer.from(templateArrayBuffer);
 
-      const certificateBuffer = canvas.toBuffer('image/png');
-      zip.file(`${name}.png`, certificateBuffer);
+        // Load the template image using canvas
+        const templateImage = await loadImage(templateBuffer);
+        const canvas = createCanvas(templateImage.width, templateImage.height);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(templateImage, 0, 0);
+
+        // Read the Excel file
+        const excelArrayBuffer = await excelFile.arrayBuffer();
+        const workbook = read(excelArrayBuffer);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const names = utils.sheet_to_json<string[]>(sheet, { header: 1 }).slice(1).map(row => row[0]);
+
+        for (const name of names) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(templateImage, 0, 0);
+
+            ctx.font = `${fontSize}px Montserrat`;
+            ctx.textAlign = 'left'; // Ensure text aligns as expected
+            ctx.textBaseline = 'top';
+            const xOffset = 0; // Adjust as necessary
+            const yOffset = 0; 
+            ctx.fillText(name, coordinates.x + xOffset, coordinates.y + yOffset);
+
+            const buffer = canvas.toBuffer('image/png');
+            zip.file(`${name}.png`, buffer);
+        }
+
+        const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+        return new NextResponse(zipContent, {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/zip',
+                'Content-Disposition': 'attachment; filename="certificates.zip"',
+            },
+        });
+    } catch (error) {
+        console.error('Error processing request:', error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
-
-    // Create zip and send it to the client
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename=certificates.zip');
-    res.send(zipBuffer);
-   else {
-    res.status(405).json({ error: 'Method not allowed' });
-  }
 }
