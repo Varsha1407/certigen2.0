@@ -1,13 +1,19 @@
-'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import Draggable from 'react-draggable';
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import Draggable from "react-draggable";
 
 export default function Home() {
   const [image, setImage] = useState<File | null>(null);
   const [namesFile, setNamesFile] = useState<File | null>(null);
   const [fontSize, setFontSize] = useState<number>(30);
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 100, y: 100 });
-  const [displayedDimensions, setDisplayedDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [position, setPosition] = useState<{ x: number; y: number }>({
+    x: 100,
+    y: 100,
+  });
+  const [displayedDimensions, setDisplayedDimensions] = useState<{
+    width: number;
+    height: number;
+  }>({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,28 +44,30 @@ export default function Home() {
 
   const handleSubmit = async () => {
     if (!image || !namesFile || !fontSize || !position) {
-      alert('Please ensure all fields are filled out correctly.');
+      alert("Please ensure all fields are filled out correctly.");
       return;
     }
 
-    console.log('Draggable Position:', position);
+    console.log("Draggable Position:", position);
 
     const img = new Image();
     img.src = URL.createObjectURL(image);
-  
+
     img.onload = async () => {
       const originalWidth = img.width;
       const originalHeight = img.height;
-  
+
       // Get the displayed image dimensions
-      const displayedImage = document.querySelector('img');
-      const displayedWidth = document.querySelector('img')?.clientWidth ?? originalWidth;
-      const displayedHeight = document.querySelector('img')?.clientHeight ?? originalHeight;
-  
+      const displayedImage = document.querySelector("img");
+      const displayedWidth =
+        document.querySelector("img")?.clientWidth ?? originalWidth;
+      const displayedHeight =
+        document.querySelector("img")?.clientHeight ?? originalHeight;
+
       // Calculate scaling factors
       const scaleX = originalWidth / displayedWidth;
       const scaleY = originalHeight / displayedHeight;
-  
+
       // Adjust the position
       const adjustedPosition = {
         x: position.x * scaleX,
@@ -67,26 +75,26 @@ export default function Home() {
       };
 
       const formData = new FormData();
-      formData.append('template', image);
-      formData.append('excel', namesFile);
-      formData.append('fontSize', fontSize.toString());
-      formData.append('coordinates', JSON.stringify(adjustedPosition));
+      formData.append("template", image);
+      formData.append("excel", namesFile);
+      formData.append("fontSize", fontSize.toString());
+      formData.append("coordinates", JSON.stringify(adjustedPosition));
 
-      const response = await fetch('/api/generate', {
-        method: 'POST',
+      const response = await fetch("/api/generate", {
+        method: "POST",
         body: formData,
       });
 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = 'certificates.zip';
+        a.download = "certificates.zip";
         a.click();
         window.URL.revokeObjectURL(url);
       } else {
-        alert('Failed to generate certificates.');
+        alert("Failed to generate certificates.");
       }
     };
   };
@@ -95,16 +103,17 @@ export default function Home() {
     <div>
       <h1>Certificate Generator</h1>
       <div>
-        <label>Upload Certificate Template (PNG): </label>
+        <div>Upload Certificate Template (PNG): </div>
         <input type="file" accept="image/png" onChange={handleImageUpload} />
       </div>
       <div>
-        <label>Upload Names Excel Sheet: </label>
+        <div>Upload Names Excel Sheet: </div>
         <input type="file" accept=".xlsx" onChange={handleExcelUpload} />
       </div>
       <div>
-        <label>Font Size: </label>
+        <div>Font Size: </div>
         <input
+          className="text-black"
           type="number"
           value={fontSize}
           onChange={handleFontSizeChange}
@@ -112,7 +121,7 @@ export default function Home() {
         />
       </div>
       {image && (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ position: "relative", display: "inline-block" }}>
           <img
             ref={imageRef}
             src={URL.createObjectURL(image)}
@@ -123,10 +132,10 @@ export default function Home() {
             position={position}
             onStop={(e, data) => setPosition({ x: data.x, y: data.y })}
           >
-            <div style={{ position: 'absolute', top: 0, left: 0 }}>
+            <div style={{ position: "absolute", top: 0, left: 0 }}>
               <span
                 draggable="false"
-                style={{ fontSize: `${fontSize}px`, cursor: 'move' }}
+                style={{ fontSize: `${fontSize}px`, cursor: "move" }}
               >
                 [Name]
               </span>
