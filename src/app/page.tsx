@@ -3,6 +3,14 @@ import React, { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 
 export default function Home() {
+  const handleStop = (e: any, data: any) => {
+    const draggableElement = e.target;
+    const elementWidth = draggableElement.offsetWidth;
+    const elementHeight = draggableElement.offsetHeight;
+    setPosition({ x: data.x, y: data.y });
+    setOffset({ x: elementWidth / 2, y: elementHeight / 2 });
+  };
+
   const [image, setImage] = useState<File | null>(null);
   const [namesFile, setNamesFile] = useState<File | null>(null);
   const [fontSize, setFontSize] = useState<number>(30);
@@ -10,6 +18,11 @@ export default function Home() {
     x: 100,
     y: 100,
   });
+  const [offset, setOffset] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+
   const [displayedDimensions, setDisplayedDimensions] = useState<{
     width: number;
     height: number;
@@ -70,8 +83,8 @@ export default function Home() {
 
       // Adjust the position
       const adjustedPosition = {
-        x: position.x * scaleX,
-        y: position.y * scaleY,
+        x: (position.x + offset.x) * scaleX,
+        y: (position.y + offset.y) * scaleY,
       };
 
       const formData = new FormData();
@@ -128,10 +141,7 @@ export default function Home() {
             alt="Certificate Template"
             onLoad={handleImageLoad} // Ensures the dimensions are set once the image is loaded
           />
-          <Draggable
-            position={position}
-            onStop={(e, data) => setPosition({ x: data.x, y: data.y })}
-          >
+          <Draggable position={position} onStop={handleStop}>
             <div style={{ position: "absolute", top: 0, left: 0 }}>
               <span
                 draggable="false"

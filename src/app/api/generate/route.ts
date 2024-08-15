@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       ctx.drawImage(templateImage, 0, 0);
 
       ctx.font = `${fontSize}px Montserrat`;
-      ctx.textAlign = "left"; // Ensure text aligns as expected
+      ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = "white";
 
