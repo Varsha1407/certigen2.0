@@ -3,14 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 
 export default function Home() {
-  const handleStop = (e: any, data: any) => {
-    const draggableElement = e.target;
-    const elementWidth = draggableElement.offsetWidth;
-    const elementHeight = draggableElement.offsetHeight;
-    setPosition({ x: data.x, y: data.y });
-    setOffset({ x: elementWidth / 2, y: elementHeight / 2 });
-  };
-
   const [image, setImage] = useState<File | null>(null);
   const [namesFile, setNamesFile] = useState<File | null>(null);
   const [fontSize, setFontSize] = useState<number>(30);
@@ -22,16 +14,28 @@ export default function Home() {
     x: 0,
     y: 0,
   });
-
   const [displayedDimensions, setDisplayedDimensions] = useState<{
     width: number;
     height: number;
   }>({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
+  const imageUrlRef = useRef<string | null>(null);
+
+  const handleStop = (e: any, data: any) => {
+    const draggableElement = e.target;
+    const elementWidth = draggableElement.offsetWidth;
+    const elementHeight = draggableElement.offsetHeight;
+    setPosition({ x: data.x, y: data.y });
+    setOffset({ x: elementWidth / 2, y: elementHeight / 2 });
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
+      if (imageUrlRef.current) {
+        URL.revokeObjectURL(imageUrlRef.current);
+      }
       setImage(e.target.files[0]);
+      imageUrlRef.current = URL.createObjectURL(e.target.files[0]);
     }
   };
 
@@ -45,7 +49,6 @@ export default function Home() {
     setFontSize(parseInt(e.target.value));
   };
 
-  // Set displayed image dimensions
   const handleImageLoad = () => {
     if (imageRef.current) {
       setDisplayedDimensions({
@@ -70,18 +73,15 @@ export default function Home() {
       const originalWidth = img.width;
       const originalHeight = img.height;
 
-      // Get the displayed image dimensions
       const displayedImage = document.querySelector("img");
       const displayedWidth =
-        document.querySelector("img")?.clientWidth ?? originalWidth;
+        displayedImage?.clientWidth ?? originalWidth;
       const displayedHeight =
-        document.querySelector("img")?.clientHeight ?? originalHeight;
+        displayedImage?.clientHeight ?? originalHeight;
 
-      // Calculate scaling factors
       const scaleX = originalWidth / displayedWidth;
       const scaleY = originalHeight / displayedHeight;
 
-      // Adjust the position
       const adjustedPosition = {
         x: (position.x + offset.x) * scaleX,
         y: (position.y + offset.y) * scaleY,
@@ -112,6 +112,14 @@ export default function Home() {
     };
   };
 
+  useEffect(() => {
+    return () => {
+      if (imageUrlRef.current) {
+        URL.revokeObjectURL(imageUrlRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div>
       <h1>Certificate Generator</h1>
@@ -137,9 +145,9 @@ export default function Home() {
         <div style={{ position: "relative", display: "inline-block" }}>
           <img
             ref={imageRef}
-            src={URL.createObjectURL(image)}
+            src={imageUrlRef.current || ""}
             alt="Certificate Template"
-            onLoad={handleImageLoad} // Ensures the dimensions are set once the image is loaded
+            onLoad={handleImageLoad}
           />
           <Draggable position={position} onStop={handleStop}>
             <div style={{ position: "absolute", top: 0, left: 0 }}>
