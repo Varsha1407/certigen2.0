@@ -6,7 +6,7 @@ import Draggable from "react-draggable";
 export default function Home() {
   const [image, setImage] = useState<File | null>(null);
   const [namesFile, setNamesFile] = useState<File | null>(null);
-  const [fontSize, setFontSize] = useState<number>(30);
+  const [fontSize, setFontSize] = useState<number>(70);
   const [position, setPosition] = useState<{ x: number; y: number }>({
     x: 100,
     y: 100,
