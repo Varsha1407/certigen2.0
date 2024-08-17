@@ -172,7 +172,7 @@ export default function Home() {
             <div style={{ position: "absolute", top: 0, left: 0 }}>
               <span
                 draggable="false"
-                style={{ fontSize: `${fontSize}px`, cursor: "move" }}
+                style={{ fontSize: `${fontSize}px`, cursor: "move",fontFamily:"Montserrat" }}
               >
                 [Name]
               </span>
