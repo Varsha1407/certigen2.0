@@ -101,11 +101,15 @@ export default function Home() {
       for (let batch = 0; batch < totalBatches; batch++) {
         const start = batch * batchSize;
         const end = Math.min(start + batchSize, allNames.length);
-        const batchNames = allNames.slice(start, end);
-  
+        let currentBatchNames = allNames.slice(start, end).filter((name) => name && name.trim());
+
+     
+      if (currentBatchNames.length === 0) {
+        continue;
+      }
         const formData = new FormData();
         formData.append("template", image);
-        formData.append("names", JSON.stringify(batchNames)); // Send batch names
+        formData.append("names", JSON.stringify(currentBatchNames));
         formData.append("fontSize", fontSize.toString());
         formData.append("coordinates", JSON.stringify(adjustedPosition));
   
