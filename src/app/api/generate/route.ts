@@ -20,20 +20,18 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const templateFile = formData.get("template") as Blob;
-    const excelFile = formData.get("excel") as Blob;
+    const namesBatch = JSON.parse(formData.get("names") as string) as string[];
     const fontSize = parseInt(formData.get("fontSize") as string);
     const coordinates: Coordinates = JSON.parse(
       formData.get("coordinates") as string
     );
 
-    if (!templateFile || !excelFile || !fontSize || !coordinates) {
+    if (!templateFile || !namesBatch || !fontSize || !coordinates) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
       );
     }
-
-    const zip = new JSZip();
 
     // Convert the template Blob to a buffer
     const templateArrayBuffer = await templateFile.arrayBuffer();
@@ -43,18 +41,10 @@ export async function POST(req: NextRequest) {
     const templateImage = await loadImage(templateBuffer);
     const canvas = createCanvas(templateImage.width, templateImage.height);
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(templateImage, 0, 0);
 
-    // Read the Excel file
-    const excelArrayBuffer = await excelFile.arrayBuffer();
-    const workbook = read(excelArrayBuffer);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const names = utils
-      .sheet_to_json<string[]>(sheet, { header: 1 })
-      .slice(1)
-      .map((row) => row[0]);
+    const zip = new JSZip();
 
-    for (const name of names) {
+    for (const name of namesBatch) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(templateImage, 0, 0);
 
@@ -63,9 +53,7 @@ export async function POST(req: NextRequest) {
       ctx.textBaseline = "top";
       ctx.fillStyle = "white";
 
-      const xOffset = 0; // Adjust as necessary
-      const yOffset = 0;
-      ctx.fillText(name, coordinates.x + xOffset, coordinates.y + yOffset);
+      ctx.fillText(name, coordinates.x, coordinates.y);
 
       const buffer = canvas.toBuffer("image/png");
       zip.file(`${name}.png`, buffer);
@@ -88,3 +76,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

@@ -1,4 +1,5 @@
 "use client";
+import { read ,utils} from "xlsx";
 import React, { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 
@@ -63,54 +64,72 @@ export default function Home() {
       alert("Please ensure all fields are filled out correctly.");
       return;
     }
-
-    console.log("Draggable Position:", position);
-
+  
     const img = new Image();
     img.src = URL.createObjectURL(image);
-
+  
     img.onload = async () => {
       const originalWidth = img.width;
       const originalHeight = img.height;
-
+  
       const displayedImage = document.querySelector("img");
       const displayedWidth =
         displayedImage?.clientWidth ?? originalWidth;
       const displayedHeight =
         displayedImage?.clientHeight ?? originalHeight;
-
+  
       const scaleX = originalWidth / displayedWidth;
       const scaleY = originalHeight / displayedHeight;
-
+  
       const adjustedPosition = {
         x: (position.x + offset.x) * scaleX,
         y: (position.y + offset.y) * scaleY,
       };
-
-      const formData = new FormData();
-      formData.append("template", image);
-      formData.append("excel", namesFile);
-      formData.append("fontSize", fontSize.toString());
-      formData.append("coordinates", JSON.stringify(adjustedPosition));
-
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "certificates.zip";
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } else {
-        alert("Failed to generate certificates.");
+  
+      // Read the Excel file in the browser to process names in batches
+      const fileArrayBuffer = await namesFile.arrayBuffer();
+      const workbook = read(fileArrayBuffer);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const allNames = utils
+        .sheet_to_json<string[]>(sheet, { header: 1 })
+        .slice(1)
+        .map((row) => row[0]);
+  
+      // Process in batches of 10 names
+      const batchSize = 30;
+      const totalBatches = Math.ceil(allNames.length / batchSize);
+  
+      for (let batch = 0; batch < totalBatches; batch++) {
+        const start = batch * batchSize;
+        const end = Math.min(start + batchSize, allNames.length);
+        const batchNames = allNames.slice(start, end);
+  
+        const formData = new FormData();
+        formData.append("template", image);
+        formData.append("names", JSON.stringify(batchNames)); // Send batch names
+        formData.append("fontSize", fontSize.toString());
+        formData.append("coordinates", JSON.stringify(adjustedPosition));
+  
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          body: formData,
+        });
+  
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `certificates_batch_${batch + 1}.zip`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } else {
+          alert(`Failed to generate batch ${batch + 1}`);
+        }
       }
     };
   };
+  
 
   useEffect(() => {
     return () => {
