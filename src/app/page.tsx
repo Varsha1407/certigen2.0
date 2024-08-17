@@ -95,8 +95,7 @@ export default function Home() {
         .slice(1)
         .map((row) => row[0]);
   
-      // Process in batches of 10 names
-      const batchSize = 30;
+      const batchSize = 10;
       const totalBatches = Math.ceil(allNames.length / batchSize);
   
       for (let batch = 0; batch < totalBatches; batch++) {
